@@ -1,0 +1,49 @@
+ingress:
+  enabled: true
+  annotations: 
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+  ingressClassName: "nginx"
+  tls:
+    - hosts:
+        - jupyterhub.dataplumbers.ch
+      secretName: jupyterhub-tls
+  hosts: 
+    - jupyterhub.dataplumbers.ch
+  pathSuffix:
+  pathType: Prefix
+  extraPaths: []
+
+hub:
+  extraEnv:
+    OAUTH2_AUTHORIZE_URL: https://login.infomaniak.com/authorize
+    OAUTH2_TOKEN_URL: https://login.infomaniak.com/token
+    INFOMANIAK_CLIENT_ID: "{{ .Values.secrets.clientID }}"
+    INFOMANIAK_CLIENT_SECRET: "{{ .Values.secrets.clientSecret }}"
+auth:
+  type: custom
+  custom:
+    className: oauthenticator.generic.GenericOAuthenticator
+    config:
+      login_service: "infomaniak"
+      client_id: "$INFOMANIAK_CLIENT_ID"
+      client_secret: "$INFOMANIAK_CLIENT_SECRET"
+      token_url: https://login.infomaniak.com/token
+      userdata_url: https://login.infomaniak.com/oauth2/userinfo
+      userdata_method: GET
+      userdata_params: {'state': 'state'}
+      username_key: email
+
+secrets:
+  clientID:
+    valueFrom:
+      secretKeyRef:
+        name: infomaniak-jupyterhub-oauth-credentials
+        key: clientID
+  clientSecret:
+    valueFrom:
+      secretKeyRef:
+        name: infomaniak-jupyterhub-oauth-credentials
+        key: clientSecret
